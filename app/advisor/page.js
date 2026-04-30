@@ -5,40 +5,59 @@ import { useState, useEffect } from 'react';
 export default function AdvisorPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  const [qaData, setQaData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      const response = await fetch('/api/advisor');
+  const handleAISearch = async (e) => {
+    if (e.key !== 'Enter' || !query.trim()) return;
+    
+    setLoading(true);
+    setAiResponse(null);
+    setResults([]);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: query })
+      });
       const data = await response.json();
-      setQaData(data);
+      
+      if (data.answer) {
+        // Robust parsing: Try to split by labels, but fallback to full response if labels are missing
+        const responseText = data.answer;
+        const detailMatch = responseText.match(/📋 DETAILED ANSWER:([\s\S]*?)(?=📖 LEGAL CITATION:|⚠️ DISCLAIMER:|$)/i);
+        const citationMatch = responseText.match(/📖 LEGAL CITATION:([\s\S]*?)(?=⚠️ DISCLAIMER:|$)/i);
+        const disclaimerMatch = responseText.match(/⚠️ DISCLAIMER:([\s\S]*?)$/i);
+
+        if (detailMatch || citationMatch) {
+          setAiResponse({
+            answer: detailMatch ? detailMatch[1].trim() : responseText.split(/📖 LEGAL CITATION:|⚠️ DISCLAIMER:/)[0].trim(),
+            citation: citationMatch ? citationMatch[1].trim() : "No specific statutory citations found for this query.",
+            disclaimer: disclaimerMatch ? disclaimerMatch[1].trim() : "This is not legal advice. Consult your CA for specific situations."
+          });
+        } else {
+          // Fallback for simple greetings or non-statutory answers
+          setAiResponse({
+            answer: responseText.trim(),
+            citation: "General inquiry - no statutory citation required.",
+            disclaimer: "This is not legal advice. Consult your CA for specific situations."
+          });
+        }
+      }
+
+    } catch (error) {
+      console.error("AI Error:", error);
+    } finally {
       setLoading(false);
     }
-    fetchData();
-  }, []);
-
-  const handleSearch = (e) => {
-    const val = e.target.value;
-    setQuery(val);
-    
-    if (val.length < 2) {
-      setResults([]);
-      return;
-    }
-
-    const filtered = qaData.filter(item => 
-      item.question.toLowerCase().includes(val.toLowerCase()) ||
-      item.answer.toLowerCase().includes(val.toLowerCase())
-    );
-    setResults(filtered.slice(0, 5));
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="text-center space-y-4">
-        <h2 className="text-4xl font-extrabold tracking-tight text-primary">Expert Compliance Advisor</h2>
-        <p className="text-xl text-muted-foreground">Ask anything about GST, Income Tax, PF, ESIC, and more.</p>
+        <h2 className="text-4xl font-extrabold tracking-tight text-primary">Expert AI Advisor</h2>
+        <p className="text-xl text-muted-foreground">Ask anything about GST, Income Tax, PF, ESIC. Citation-backed answers only.</p>
       </div>
 
       <div className="relative group">
@@ -50,70 +69,69 @@ export default function AdvisorPage() {
           <input
             type="text"
             className="w-full p-6 bg-transparent border-none outline-none text-lg placeholder:text-muted-foreground"
-            placeholder="Search compliance regulations (e.g., 'GSTR-1 penalty' or 'PF deposit')"
+            placeholder="Type your question and press Enter (e.g., 'What is the penalty for late PF?')"
             value={query}
-            onChange={handleSearch}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleAISearch}
+            disabled={loading}
           />
         </div>
       </div>
 
       <div className="space-y-6">
-        {results.length > 0 ? (
-          results.map((item, index) => (
-            <div key={index} className="p-8 rounded-2xl bg-card border border-border shadow-lg hover:border-primary/50 transition-all space-y-6 animate-in fade-in slide-in-from-bottom-4">
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-primary">Q: {item.question}</h3>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-muted-foreground font-medium animate-pulse">Consulting the AI knowledge base...</p>
+          </div>
+        ) : aiResponse ? (
+          <div className="p-8 rounded-3xl bg-card border border-border shadow-2xl space-y-8 animate-in fade-in zoom-in-95 duration-500">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-widest text-xs">
+                <div className="w-2 h-4 bg-primary rounded-full"></div>
+                Detailed Answer
               </div>
-              
-              <div className="space-y-6 border-l-4 border-primary/20 pl-6">
-                <div className="space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-primary/60">📋 Detailed Answer</span>
-                  <p className="text-lg leading-relaxed">{item.answer}</p>
-                </div>
-
-                <div className="space-y-3 bg-muted/30 p-6 rounded-xl border border-border">
-                  <span className="text-xs font-bold uppercase tracking-widest text-secondary">📖 Legal Citation</span>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Act/Scheme</p>
-                      <p className="font-semibold">{item.source_act}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Section/Para</p>
-                      <p className="font-semibold">{item.section_number}</p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-muted-foreground">Circular/Notification</p>
-                      <p className="font-semibold">{item.circular_ref}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-border">
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter italic">
-                  ⚠️ Disclaimer: This is not legal advice. Consult your CA for specific situations.
-                </p>
+              <div className="text-lg leading-relaxed text-foreground whitespace-pre-wrap">
+                {aiResponse.answer}
               </div>
             </div>
-          ))
-        ) : query.length >= 2 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            No exact match found. Try a different keyword or consult your CA.
+
+            <div className="p-6 bg-muted/40 rounded-2xl border border-border space-y-4">
+              <div className="flex items-center gap-2 text-secondary font-bold uppercase tracking-widest text-xs">
+                <div className="w-2 h-4 bg-secondary rounded-full"></div>
+                Statutory Citations
+              </div>
+              <div className="text-sm font-medium text-muted-foreground whitespace-pre-wrap font-mono">
+                {aiResponse.citation}
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-border">
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter italic flex items-center gap-2">
+                <span className="text-amber-500 text-sm">⚠️</span> {aiResponse.disclaimer}
+              </p>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-            <div className="p-4 rounded-xl border border-border bg-muted/10 text-sm text-muted-foreground">
-              Try searching for: <span className="text-primary font-medium">"GST rate"</span>, <span className="text-primary font-medium">"PF penalty"</span>, or <span className="text-primary font-medium">"ESIC threshold"</span>
+            <div className="p-6 rounded-2xl border border-border bg-muted/10 text-sm text-muted-foreground space-y-2">
+              <p className="font-bold text-primary uppercase tracking-widest text-[10px]">Try asking</p>
+              <p className="italic">"How many r's are in the word 'strawberry'?"</p>
+              <p className="italic">"What is the interest rate for late GST payment?"</p>
+              <p className="italic">"Threshold for ESIC registration?"</p>
             </div>
-            <div className="p-4 rounded-xl border border-border bg-muted/10 text-sm text-muted-foreground flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              Knowledge Base up to date: April 2024
+            <div className="p-6 rounded-2xl border border-border bg-muted/10 text-sm text-muted-foreground flex flex-col justify-center gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <span className="font-bold">AI Active</span>
+              </div>
+              <p className="text-[10px] uppercase tracking-widest opacity-60">Model: poolside/laguna-xs.2:free</p>
             </div>
           </div>
         )}
       </div>
     </div>
+
   );
 }
 
