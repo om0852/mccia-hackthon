@@ -1,46 +1,69 @@
 # MCCIA Hackathon
 
-This is a Next.js project created for a hackathon build. It is a business/operations dashboard for compliance tracking and advisory workflows.
+Business compliance and advisory dashboard built for a hackathon. Helps manage clients, deadlines, reminders, circulars, audit logs, advisor chat, and GST calculations using local datasets.
 
-## Product
+## What this project does
 
-- Specializes in: compliance workflow automation, advisory management, audit tracking, GST/circular tracking, and stakeholder reminders
-- Model: local web app with bundled CSV-backed knowledge base and API routes
-
-## What it does
-
-- Advisor workflows and client management
-- Audit logging and compliance activity history
-- Calendar and reminders for compliance events
-- Circulars and announcements library
-- Client records and profiles from bundled datasets
-- GST calculator and deadline forecasting
-- Returns and reminders workflow
-- Chat and advisor endpoints via API routes
+- Manage clients and their compliance profiles
+- Track compliance calendar events and GST circulars
+- Generate reminders, forecasts, and deadlines
+- Access advisor chat and calculator tools
+- Review audit logs and missed deadlines
+- Work with local CSV and JSON datasets offline
 
 ## Tech stack
 
-- Next.js
-- React
-- Tailwind CSS
+- Next.js 16.2.4
+- React 19.2.4
+- Tailwind CSS 4
 - Google Generative AI SDK
 - OpenRouter SDK
-- XLSX parsing
+- XLSX parsing library
 
 ## Repo structure
 
-```text
-app/                 Next.js pages and API routes
-lib/                 Data loading and business logic
-public/              Datasets and static assets
-README.md            You are here
+```
+app/
+  advisor/page.js
+  audit/page.js
+  calculator/page.js
+  calendar/page.js
+  circulars/page.js
+  clients/page.js
+  logs/page.js
+  reminders/page.js
+  returns/page.js
+  page.js
+  layout.js
+  globals.css
+  api/
+    advisor/route.js
+    audit/route.js
+    calendar/route.js
+    chat/route.js
+    circulars/route.js
+    clients/route.js
+    forecast/route.js
+    logs/route.js
+lib/
+  data-loader.js
+  deadline-calculator.js
+  gst-calculator.js
+  reminder-generator.js
+public/
+  client_profiles.csv
+  compliance_calendar_master.csv
+  compliance_qa_dataset.csv
+  gst_circulars_index.json
+  missed_deadlines_log.csv
+  SVGs and icons
+README.md
 ```
 
 ## Requirements
 
 - Node.js 18+
 - npm or pnpm
-- Gemini API key or OpenRouter API key if using AI features
 
 ## Setup
 
@@ -49,24 +72,16 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
-
-## Starting points
-
-- `app/page.js` — homepage and dashboard shell
-- `app/clients/page.js` — client management UI
-- `app/calendar/page.js` — calendar workflow
-- `app/advisor/page.js` — advisor features
-- `lib/data-loader.js` — loads public CSV/JSON datasets
+Open `http://localhost:3000`.
 
 ## Notes
 
-- Some AI features require API keys from Google or OpenRouter.
-- The public datasets are sample data for the hackathon build.
+- AI chat features need provider API keys.
+- Local datasets are bundled for the hackathon build.
 
 ## Contributing
 
-Keep changes scoped to one feature per PR. Update README pages when behavior changes.
+Keep changes scoped to one feature per PR and update this README when behavior changes.
 
 ## License
 
